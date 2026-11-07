@@ -1,0 +1,30 @@
+# Kalshi iPhone-controlled demo PAPER bot
+
+**Hard safety boundary:** `bot.py` can only GET public market data from `https://demo-api.kalshi.co/trade-api/v2`. It does not import a trading SDK, accept API credentials, access production, or send POST orders. All paper trades are **local simulations** in `paper_state.json`, **not** Kalshi demo orders. It is not yet an AI probability estimator; the momentum rule is an unproven test hypothesis.
+
+## Run using Safari on iPhone + GitHub Codespaces
+
+1. On your phone open [github.com/new](https://github.com/new), sign in, and create a **private** repo called `kalshi-paper-bot`. You may need Safari's **Request Desktop Website** option.
+2. In that repo choose **Add file → Upload files** and upload `bot.py`, `test_bot.py`, and `README.md` from the Files app. (Unzip the supplied ZIP using the Files app first.) Commit the files.
+3. On repo home choose **Code → Codespaces → Create codespace on main**. This launches a browser-based Linux editor; allow it to load, then open its Terminal.
+4. Run `python3 -m unittest -v` to test the limits, then `python3 bot.py --fixture` for five synthetic cycles (no API needed). To reset your fixture ledger: `rm paper_state.json`.
+5. Run `python3 bot.py --once` to fetch and analyze up to 600 open **demo** markets (three pages, if available). Use `python3 bot.py --loop` for a once-per-minute polling loop, while Codespaces stays awake.
+6. To **stop** new paper entries, create a file named `STOP` with `touch STOP`. It halts at the next cycle. Remove and explicitly acknowledge with `rm STOP && python3 bot.py --reset-halt`. Kill the loop with **Ctrl+C**. A Codespace may suspend; this is not reliable always-on hosting.
+7. Examine `paper_state.json` for positions/trades. This state file should not be committed; it can reset if the environment is deleted. Keep your repo private.
+
+## Limits (code defaults)
+- Hypothetical $100 initial balance, maximum $2 cost per simulated trade, maximum $10 aggregate entry cost, maximum 3 positions.
+- Daily mark-to-bid account drawdown stop of $5. It includes unrealized losses; unknown quotes have zero liquidation value and halt the system.
+- Refuse stale/missing/inverted price fields and spreads above 8 cents; paid 1 cent per side as an illustrative **buffer** (NOT actual Kalshi fee formula).
+- Require a 3-cent midpoint increase between the first and third observed quotes, using three scans. Momentum is not necessarily predictive; this strategy has no demonstrated edge.
+- Paper close on bid >= entry + 4 cents, bid <= entry - 3 cents or age > 45 minutes. No expiry settlement, market fee integration, partial fills, slippage estimation, order book depth, or automated event resolution. Performance is **not comparable** to live results.
+- If API errors, missing quotes for positions, drawdown breach, or `STOP` file: **sticky halt**, only cleared by explicit operator action.
+
+## Important limitations
+- The bot surveys up to `--pages 10` (2,000 markets), *across categories*; it does not guarantee exhaustive coverage of all open markets. The current scan relies on public demo `yes_bid_dollars` and `yes_ask_dollars` fields, which may be absent or have few liquid markets.
+- Simulated fills happen at the listed best ask/bid, without checking order book depth. Demo data may differ drastically from live data.
+- No real AI model, calibrated forecasts, news ingestion, broker demo orders, real-money order routing, or remote phone dashboard is included. These require a separate reviewed step.
+- Tests verify deterministic local safety behaviors, **not** exchange integration, performance, or profitability.
+- This is experimental code: review the bot and your exchange eligibility/terms before use. Never put API private keys in code or GitHub commits.
+
+Source: [official Kalshi API docs](https://docs.kalshi.com/), [demo Kalshi](https://demo.kalshi.co/), [GitHub Codespaces](https://docs.github.com/en/codespaces).
